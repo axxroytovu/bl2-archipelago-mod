@@ -13,7 +13,7 @@ from logging import Logger
 from select import select
 from typing import Any, Callable, Deque, Dict, Optional, Tuple
 
-from Mods.TwitchLogin import _authorization, _utilities
+from Mods.Archipelago import _authorization, _utilities
 
 with _utilities.ImportContext:
     import websocket

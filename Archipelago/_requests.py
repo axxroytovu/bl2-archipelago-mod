@@ -6,7 +6,7 @@ import time
 
 from typing import Any, Callable, Dict
 
-from Mods.TwitchLogin import _authorization, _utilities
+from Mods.Archipelago import _authorization, _utilities
 
 with _utilities.ImportContext:
     import requests
@@ -24,8 +24,8 @@ def Request(
     Asynchronously send a request to the Twitch API with the user's authentication.
 
     The scopes required for a given Twitch API request must have been registered for with
-    `TwitchLogin.RegisterMod(mod)`, with the `mod` object having the relevant
-    `TwitchLogin.TwitchScope` object in its `TwitchScopes` property. The user must have then logged
+    `Archipelago.RegisterMod(mod)`, with the `mod` object having the relevant
+    `Archipelago.TwitchScope` object in its `TwitchScopes` property. The user must have then logged
     in upon being notified of their requirement to do so. Without the authorized scope, the Twitch
     API will respond to the request with an error.
 
@@ -121,8 +121,8 @@ def Delete(Path: str, Params: Any = None, *, Callback: Callable[[int, Dict[str, 
     Asynchronously send a DELETE request to the Twitch API with the user's authentication.
 
     The scopes required for a given Twitch API request must have been registered for with
-    `TwitchLogin.RegisterMod(mod)`, with the `mod` object having the relevant
-    `TwitchLogin.TwitchScope` object in its `TwitchScopes` property. The user must have then logged
+    `Archipelago.RegisterMod(mod)`, with the `mod` object having the relevant
+    `Archipelago.TwitchScope` object in its `TwitchScopes` property. The user must have then logged
     in upon being notified of their requirement to do so. Without the authorized scope, the Twitch
     API will respond to the request with an error.
 
@@ -147,8 +147,8 @@ def Get(Path: str, Params: Any = None, *, Callback: Callable[[int, Dict[str, Any
     Asynchronously send a GET request to the Twitch API with the user's authentication.
 
     The scopes required for a given Twitch API request must have been registered for with
-    `TwitchLogin.RegisterMod(mod)`, with the `mod` object having the relevant
-    `TwitchLogin.TwitchScope` object in its `TwitchScopes` property. The user must have then logged
+    `Archipelago.RegisterMod(mod)`, with the `mod` object having the relevant
+    `Archipelago.TwitchScope` object in its `TwitchScopes` property. The user must have then logged
     in upon being notified of their requirement to do so. Without the authorized scope, the Twitch
     API will respond to the request with an error.
 
@@ -173,8 +173,8 @@ def Patch(Path: str, Params: Any = None, Data: Any = None, *, Callback: Callable
     Asynchronously send a PATCH request to the Twitch API with the user's authentication.
 
     The scopes required for a given Twitch API request must have been registered for with
-    `TwitchLogin.RegisterMod(mod)`, with the `mod` object having the relevant
-    `TwitchLogin.TwitchScope` object in its `TwitchScopes` property. The user must have then logged
+    `Archipelago.RegisterMod(mod)`, with the `mod` object having the relevant
+    `Archipelago.TwitchScope` object in its `TwitchScopes` property. The user must have then logged
     in upon being notified of their requirement to do so. Without the authorized scope, the Twitch
     API will respond to the request with an error.
 
@@ -203,8 +203,8 @@ def Post(Path: str, Params: Any = None, Data: Any = None, *, Callback: Callable[
     Asynchronously send a POST request to the Twitch API with the user's authentication.
 
     The scopes required for a given Twitch API request must have been registered for with
-    `TwitchLogin.RegisterMod(mod)`, with the `mod` object having the relevant
-    `TwitchLogin.TwitchScope` object in its `TwitchScopes` property. The user must have then logged
+    `Archipelago.RegisterMod(mod)`, with the `mod` object having the relevant
+    `Archipelago.TwitchScope` object in its `TwitchScopes` property. The user must have then logged
     in upon being notified of their requirement to do so. Without the authorized scope, the Twitch
     API will respond to the request with an error.
 
@@ -233,8 +233,8 @@ def Put(Path: str, Params: Any = None, Data: Any = None, *, Callback: Callable[[
     Asynchronously send a PUT request to the Twitch API with the user's authentication.
 
     The scopes required for a given Twitch API request must have been registered for with
-    `TwitchLogin.RegisterMod(mod)`, with the `mod` object having the relevant
-    `TwitchLogin.TwitchScope` object in its `TwitchScopes` property. The user must have then logged
+    `Archipelago.RegisterMod(mod)`, with the `mod` object having the relevant
+    `Archipelago.TwitchScope` object in its `TwitchScopes` property. The user must have then logged
     in upon being notified of their requirement to do so. Without the authorized scope, the Twitch
     API will respond to the request with an error.
 

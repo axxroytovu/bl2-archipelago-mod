@@ -16,9 +16,9 @@ _lib_dir: str = os.path.join(_mod_dir, "lib")
 
 
 # Create a logger object to handle logging throughout our module. It should not propogate to the
-# global logger. The base name to be inserted in logging messages is "TwitchLogin", which we may
+# global logger. The base name to be inserted in logging messages is "Archipelago", which we may
 # append to by creating child loggers with getChild().
-log: logging.Logger = logging.getLogger("TwitchLogin")
+log: logging.Logger = logging.getLogger("Archipelago")
 log.propagate = False
 
 # Module-wide logging level may be assigned here:
@@ -106,4 +106,4 @@ def _tick(caller: unrealsdk.UObject, function: unrealsdk.UFunction, params: unre
         MainThreadQueue.popleft()()
     return True
 
-unrealsdk.RunHook("WillowGame.WillowGameViewportClient.Tick", "TwitchLogin", _tick)
+unrealsdk.RunHook("WillowGame.WillowGameViewportClient.Tick", "Archipelago", _tick)

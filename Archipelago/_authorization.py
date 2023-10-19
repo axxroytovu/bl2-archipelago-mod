@@ -7,7 +7,7 @@ import webbrowser
 
 from typing import Callable, Optional, Sequence, Tuple
 
-from Mods.TwitchLogin import _utilities
+from Mods.Archipelago import _utilities
 
 with _utilities.ImportContext:
     import requests
@@ -105,8 +105,8 @@ def InitiateLogin(scopes: Sequence[str]) -> None:
             ValidationCallback()
         return True
 
-    unrealsdk.RunHook("WillowGame.WillowGFxTrainingDialogBox.HandleInputKey", "TwitchLogin.Login", dialog_inputkey)
-    unrealsdk.RunHook("WillowGame.WillowGameViewportClient.Tick", "TwitchLogin.Login", _tick_http_server)
+    unrealsdk.RunHook("WillowGame.WillowGFxTrainingDialogBox.HandleInputKey", "Archipelago.Login", dialog_inputkey)
+    unrealsdk.RunHook("WillowGame.WillowGameViewportClient.Tick", "Archipelago.Login", _tick_http_server)
 
     webbrowser.open(url)
 
@@ -114,8 +114,8 @@ def InitiateLogin(scopes: Sequence[str]) -> None:
 def _end_request():
     global _http_listener, _login_dialog
 
-    unrealsdk.RemoveHook("WillowGame.WillowGFxTrainingDialogBox.HandleInputKey", "TwitchLogin.Login")
-    unrealsdk.RemoveHook("WillowGame.WillowGameViewportClient.Tick", "TwitchLogin.Login")
+    unrealsdk.RemoveHook("WillowGame.WillowGFxTrainingDialogBox.HandleInputKey", "Archipelago.Login")
+    unrealsdk.RemoveHook("WillowGame.WillowGameViewportClient.Tick", "Archipelago.Login")
 
     if _http_listener is not None:
         log.info("Closing HTTP server")

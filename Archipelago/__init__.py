@@ -12,7 +12,7 @@ from typing import Any, Dict, List, Sequence, Set, Optional, Type
 if __name__ == "__main__":
     import importlib
     for submodule in ("_authorization", "_pubsub", "_requests"):
-        submodule = "Mods.TwitchLogin." + submodule
+        submodule = "Mods.Archipelago." + submodule
         if submodule in sys.modules:
             importlib.reload(sys.modules[submodule])
 
@@ -21,8 +21,8 @@ if __name__ == "__main__":
     except NotImplementedError:
         __file__ = os.path.abspath(sys.exc_info()[-1].tb_frame.f_code.co_filename)
 
-from Mods.TwitchLogin import _authorization, _pubsub, _requests as Requests
-from Mods.TwitchLogin._utilities import log
+from Mods.Archipelago import _authorization, _pubsub, _requests as Requests
+from Mods.Archipelago._utilities import log
 
 
 __all__: List[str] = [
@@ -35,20 +35,20 @@ __all__: List[str] = [
 def RegisterMod(mod: ModMenu.SDKMod) -> None:
     """
     Register the Twitch scopes and PubSub topics specified by the given mod's `TwitchScopes` and/or
-    `TwitchTopics` attributes, and register the mod to have its `TwitchLoginChanged()` method called
+    `TwitchTopics` attributes, and register the mod to have its `ArchipelagoChanged()` method called
     when the user's authentication changes.
 
     The mod may optionally define a `TwitchScopes` attribute, containing a sequence of strings
     representing scopes in the Twitch API; e.g. "channel:read:redemptions". See:
     https://dev.twitch.tv/docs/authentication#scopes
 
-    TwitchLogin attempts to acquire authorization for each scope requested by mods in this way. The
+    Archipelago attempts to acquire authorization for each scope requested by mods in this way. The
     user is directed to the Twitch authorization webpage, in which they are presented with the
     complete list of scopes requested.
 
     Upon authorization, Twitch grants permission for each valid scope. If any scopes requested by
     mods were not granted, i.e. they were invalid scopes, an error will be logged to the console
-    and TwitchLogin's "logging.log" file.
+    and Archipelago's "logging.log" file.
 
     The mod may optionally define a `TwitchTopics` attribute, containing a mapping of strings to
     callables. The strings serving as keys represent topics in the Twitch PubSub API. See:
@@ -64,9 +64,9 @@ def RegisterMod(mod: ModMenu.SDKMod) -> None:
     containing the `data` field of the message will be passed to this parameter.
 
     If Twitch returns any errors when attempting to listen for a topic, the error will be logged to
-    the console and TwitchLogin's "logging.log" file.
+    the console and Archipelago's "logging.log" file.
 
-    If the mod defines a `TwitchLoginChanged` method, it will be invoked each time the user's login
+    If the mod defines a `ArchipelagoChanged` method, it will be invoked each time the user's login
     status changes. This method should accept a boolean as the only parameter after `self`. If the
     user has successfully authenticated, a value of `True` will be provided. If they have logged
     out, a value of `False` will be instead.
@@ -85,10 +85,10 @@ def RegisterMod(mod: ModMenu.SDKMod) -> None:
 
 def UnregisterMod(mod: ModMenu.SDKMod):
     """
-    Remove the given mod's registration from TwitchLogin. It will no longer receive messages on its
+    Remove the given mod's registration from Archipelago. It will no longer receive messages on its
     PubSub topic callbacks, and scopes it registered for will not be requested in future user
     authorizations. It will also not receive notifications of the user's login status changing on
-    its `TwitchLoginChanged` method.
+    its `ArchipelagoChanged` method.
     """
     log.info("Unregistering mod %s", mod)
 
@@ -132,11 +132,11 @@ def UnregisterMod(mod: ModMenu.SDKMod):
 
 def RegisterWhileEnabled(cls: Type[ModMenu.SDKMod]) -> Type[ModMenu.SDKMod]:
     """
-    A decorator for SDKMod classes that configures them to be registered with TwitchLogin while
+    A decorator for SDKMod classes that configures them to be registered with Archipelago while
     enabled.
     
-    More specifically, `TwitchLogin.RegisterMod()` is called on instances of the mod class at the
-    end of its `Enable()` method, and `TwitchLogin.UnregisterMod()` is called on it before its
+    More specifically, `Archipelago.RegisterMod()` is called on instances of the mod class at the
+    end of its `Enable()` method, and `Archipelago.UnregisterMod()` is called on it before its
     `Disable()` method is run.
     """
 
@@ -281,14 +281,14 @@ def _register_mod_topics(mod: ModMenu.SDKMod) -> None:
 
 
 def _notify_mod_of_login(mod: ModMenu.SDKMod, logged_in: bool) -> None:
-    """Invoke the TwitchLoginChanged method for the given mod, if it defines one."""
-    if not hasattr(mod, "TwitchLoginChanged"):
-        log.debug("No TwitchLoginChanged for mod %s", mod)
+    """Invoke the ArchipelagoChanged method for the given mod, if it defines one."""
+    if not hasattr(mod, "ArchipelagoChanged"):
+        log.debug("No ArchipelagoChanged for mod %s", mod)
         return
 
-    try: mod.TwitchLoginChanged(logged_in)
+    try: mod.ArchipelagoChanged(logged_in)
     except:
-        log.error("Exception while invoking TwitchLoginChanged for mod %s", mod, exc_info=True)
+        log.error("Exception while invoking ArchipelagoChanged for mod %s", mod, exc_info=True)
 
 
 def _DisplayGameMessage(message: str, subtitle: str, duration: float = 5) -> None:
@@ -398,17 +398,17 @@ def _handle_pubsub_message(topic: str, data: Dict[str, Any]) -> None:
             )
 
 
-class TwitchLogin(ModMenu.SDKMod):
-    Name: str = "Twitch Login"
-    Author: str = "apple1417 & mopioid"
+class Archipelago(ModMenu.SDKMod):
+    Name: str = "Archipelago Connector"
+    Author: str = "Axxroy"
     Description: str = (
-        "Log in with your (or your bot's) Twitch account to enable mods with Twitch functionality."
+        "Connect to an Archipelago Multi-World Randomizer Server."
     )
-    Version: str = "1.1"
+    Version: str = "0.0"
     Types: ModMenu.ModTypes = ModMenu.ModTypes.Utility
 
-    Status: str = "<font color=\"#ff0000\">Not Logged In</font>"
-    SettingsInputs: Dict[str, str] = { "Enter": "Login" }
+    Status: str = "<font color=\"#ff0000\">Not Connected</font>"
+    SettingsInputs: Dict[str, str] = { "Enter": "Connect" }
 
     Options: Sequence[ModMenu.Options.Base] = ( _saved_token, _saved_expiration )
 
@@ -451,40 +451,40 @@ class TwitchLogin(ModMenu.SDKMod):
 
     def LoggedIn(self) -> None:
         self.Status = "<font color=\"#00ff00\">Logged In</font>"
-        self.Description = f"{TwitchLogin.Description}\n\nCurrently logged in as: {UserName}"
+        self.Description = f"{Archipelago.Description}\n\nCurrently logged in as: {UserName}"
         self.SettingsInputs = { "Delete": "Logout" }
         self._update_mod_menu()
 
     def LoggedOut(self) -> None:
         self.Status = "<font color=\"#ff0000\">Logged Out</font>"
-        self.Description = TwitchLogin.Description
+        self.Description = Archipelago.Description
         self.SettingsInputs = { "Enter": "Login" }
         self._update_mod_menu()
 
     def LoginExpired(self) -> None:
         self.Status = "<font color=\"#ff0000\">Login Expired</font>"
         self.Description = (
-            TwitchLogin.Description + 
+            Archipelago.Description + 
             "\n\nYour login has expired, please login again."
         )
-        self.SettingsInputs = { "Enter": "Re-Login" }
+        self.SettingsInputs = { "Enter": "Re-Connect" }
         self._update_mod_menu()
         _DisplayGameMessage(
-            "Twitch Login Expired",
-            "lease log in again to continue using mods with Twitch features"
+            "Archipelago Connection Expired",
+            "lease log in again to continue using Archipelago"
         )
 
     def ConnectionFailed(self) -> None:
         self.Status = "<font color=\"#ffff00\">Connection Failed</font>"
         self.Description = (
-            TwitchLogin.Description + 
-            "\n\nError connecting to the Twitch servers."
+            Archipelago.Description + 
+            "\n\nError connecting to the Archipelago server."
         )
         self.SettingsInputs = { "Enter": "Reconnect" }
         self._update_mod_menu()
         _DisplayGameMessage(
-            "Twitch Connection Failure",
-            "Mods with Twitch features will not be fully functional."
+            "Archipelago Connection Failure",
+            "Archipelago Mod will not be functional."
         )
 
     def MissingPermissions(self) -> None:
@@ -492,7 +492,7 @@ class TwitchLogin(ModMenu.SDKMod):
 
         self.Status = "<font color=\"#ffff00\">Missing Permissions</font>"
         self.Description = (
-            f"{TwitchLogin.Description}\n\n"
+            f"{Archipelago.Description}\n\n"
             f"Currently logged in as: {UserName}\n\n"
             f"Missing permissions required by mods: {mod_names}"
         )
@@ -531,7 +531,7 @@ class TwitchLogin(ModMenu.SDKMod):
                 _authorization.Validate(force=True)
 
 
-_mod_instance = TwitchLogin()
+_mod_instance = Archipelago()
 
 if __name__ == "__main__":
     for mod in ModMenu.Mods:
