@@ -5,13 +5,14 @@ import functools
 import os
 import sys
 import time
+import json
 
 from collections.abc import Mapping
 from typing import Any, Dict, List, Sequence, Set, Optional, Type
 
 if __name__ == "__main__":
     import importlib
-    for submodule in ("_authorization", "_pubsub", "_requests"):
+    for submodule in ("_authorization", "_pubsub", "_requests", "_CommonClient"):
         submodule = "Mods.Archipelago." + submodule
         if submodule in sys.modules:
             importlib.reload(sys.modules[submodule])
@@ -21,7 +22,7 @@ if __name__ == "__main__":
     except NotImplementedError:
         __file__ = os.path.abspath(sys.exc_info()[-1].tb_frame.f_code.co_filename)
 
-from Mods.Archipelago import _authorization, _pubsub, _requests as Requests
+from Mods.Archipelago import _authorization, _pubsub, _requests as Requests, _CommonClient as CommonClient
 from Mods.Archipelago._utilities import log
 
 
@@ -519,6 +520,8 @@ class Archipelago(ModMenu.SDKMod):
 
 
     def __init__(self):
+        with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), "connection.json"), 'r') as jfile:
+            self.connectionData = json.load(jfile)
         _authorization.ValidationCallback = _handle_validation
         _pubsub.MessageCallback = _handle_pubsub_message
 

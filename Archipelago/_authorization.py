@@ -88,7 +88,7 @@ def InitiateLogin(scopes: Sequence[str]) -> None:
     # Show a dialog in-game.
     _login_dialog = unrealsdk.GetEngine().GamePlayers[0].Actor.GFxUIManager.ShowTrainingDialog((
         "A window has been opened in your web browser. Follow the prompts to log in with your "
-        "Twitch account."
+        "Archipelago credentials."
         "\n\n"
         f"If the browser window did not open, you may open the following URL yourself: {url}"
         "\n\n"
