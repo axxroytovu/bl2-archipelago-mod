@@ -488,7 +488,8 @@ class CommonContext:
         The values can be accessed via the "stored_data" attribute of this context, which is a dictionary mapping the
         names of the data storage keys to the latest values received from the server.
         """
-        if new_keys := (set(keys) - self.stored_data_notification_keys):
+        new_keys = (set(keys) - self.stored_data_notification_keys)
+        if new_keys:
             self.stored_data_notification_keys.update(new_keys)
             async_start(self.send_msgs([{"cmd": "Get",
                                          "keys": list(new_keys)},
