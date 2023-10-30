@@ -6,7 +6,7 @@ import os
 import sys
 
 from collections import deque
-from typing import Callable, Deque, Optional, Tuple
+from typing import Callable, Deque, Optional, Tuple, NamedTuple
 
 
 # Determine the absolute path to our directory from that of the currently executing file. From that,
@@ -89,6 +89,22 @@ class ImportContext():
 
 
 ImportContext = ImportContext()
+
+
+class Version(NamedTuple):
+    major: int
+    minor: int
+    build: int
+
+    def as_simple_string(self) -> str:
+        return ".".join(str(item) for item in self)
+
+def tuplize_version(version: str) -> Version:
+    return Version(*(int(piece, 10) for piece in version.split(".")))
+
+
+__version__ = "0.4.3"
+version_tuple = tuplize_version(__version__)
 
 
 MainThreadQueue: Deque[Callable[[], None]] = deque()

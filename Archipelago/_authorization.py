@@ -4,6 +4,7 @@ import sys
 import time
 import urllib
 import webbrowser
+import uuid
 
 from typing import Callable, Optional, Sequence, Tuple
 
@@ -12,6 +13,8 @@ from Mods.Archipelago import _utilities
 with _utilities.ImportContext:
     import requests
     import socket
+    import websocket
+    import rel
 
 log = _utilities.log.getChild("Authorization")
 
@@ -63,52 +66,35 @@ _http_listener: socket.socket = None
 _login_dialog: unrealsdk.UObject = None
 
 
-def InitiateLogin(scopes: Sequence[str]) -> None:
+def on_message(ws, message):
+    unrealsdk.Log(message)
+
+def on_error(ws, error):
+    unrealsdk.Log(error)
+
+def on_close(ws, close_status_code, close_msg):
+    unrealsdk.Log("### closed ###")
+
+def on_open(ws):
+    unrealsdk.Log("Opened connection")
+
+def InitiateLogin(ctx) -> None:
     """
-    Begin the interactive login process, presenting a dialog in-game, starting an HTTP server, and
-    opening a browser with a webpage to redirect to Twitch's authorization page.
+    Begin the connection process.
     """
-    global _requested_scopes, _http_listener, _login_dialog
-    _requested_scopes = scopes
+    payload = {
+        'cmd': 'Connect',
+        'password': ctx.password, 'name': ctx.auth, 'version': _utilities.version_tuple,
+        'tags': ctx.tags, 'items_handling': ctx.items_handling,
+        'uuid': uuid.getnode(), 'game': ctx.game, 'slot_data': ctx.want_slot_data,
+    }
 
-    log.info("Initiating login process for scopes %s", scopes)
+    websocket.enableTrace(True)
+    ws = websocket.WebSocketApp(ctx.address, on_open=on_open, on_close=on_close, on_error=on_error, on_message=on_message)
+    ws.run_forever(dispatcher=rel, reconnect=5)
+    rel.dispatch()
+    ws.send(str(payload))
 
-    # Open a socket to listen for incoming connections on our webserver port.
-    _http_listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    _http_listener.bind(("localhost", _PORT))
-    _http_listener.listen(5)
-    # Set the timeout for accepting connections to the smallest expressable float. We do this method
-    # for non-blocking accept(), since setblocking() fails to accept connections for some reason.
-    _http_listener.settimeout(sys.float_info.min)
-
-    log.info("Opened HTTP server on localhost:%s", _PORT)
-
-    url = f"http://localhost:{_PORT}{_BEGIN_PATH}"
-
-    # Show a dialog in-game.
-    _login_dialog = unrealsdk.GetEngine().GamePlayers[0].Actor.GFxUIManager.ShowTrainingDialog((
-        "A window has been opened in your web browser. Follow the prompts to log in with your "
-        "Archipelago credentials."
-        "\n\n"
-        f"If the browser window did not open, you may open the following URL yourself: {url}"
-        "\n\n"
-        "Closing this dialog cancels the login process."
-    ), "Twitch Login", 2, 0, True)
-
-    # Create a callback for when an input is pressed while the dialog is open.
-    def dialog_inputkey(caller: unrealsdk.UObject, function: unrealsdk.UFunction, params: unrealsdk.FStruct) -> bool:
-        # If the object receiving the input is the dialog, and the input is one of the keys that
-        # closes the dialog being pressed, cancel the login attempt.
-        if caller is _login_dialog and params.ukey in _DIALOG_KEYS and params.uevent == 1:
-            log.info("User cancelled login")
-            _end_request()
-            ValidationCallback()
-        return True
-
-    unrealsdk.RunHook("WillowGame.WillowGFxTrainingDialogBox.HandleInputKey", "Archipelago.Login", dialog_inputkey)
-    unrealsdk.RunHook("WillowGame.WillowGameViewportClient.Tick", "Archipelago.Login", _tick_http_server)
-
-    webbrowser.open(url)
 
 
 def _end_request():

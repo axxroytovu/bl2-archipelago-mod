@@ -26,6 +26,10 @@ if __name__ == "__main__":
 from Mods.Archipelago import _authorization, _pubsub, _requests as Requests, _utilities
 from Mods.UserFeedback import TextInputBox
 
+with _utilities.ImportContext:
+    import requests
+    import websocket
+
 
 __all__: List[str] = [
     "RegisterMod", "UnregisterMod", "RegisterWhileEnabled",
@@ -40,6 +44,19 @@ _saved_port: ModMenu.Options.Base = ModMenu.Options.Hidden(Caption="AP Port", St
 _saved_player_name: ModMenu.Options.Base = ModMenu.Options.Hidden(Caption="AP Name", StartingValue="{PlayerName}")
 """A ModMenu Option to save the last connected archipelago name."""
 Passcode = ""
+
+class servercontext():
+    password = ""
+    auth = ""
+    tags = ""
+    items_handling = ""
+    game = ""
+    want_slot_data = ""
+
+    def __init__(self, **kwarg):
+        for k, v in kwarg.items():
+            setattr(self, k, v)
+
 
 class Archipelago(ModMenu.SDKMod):
     Name: str = "Archipelago Connector"
@@ -161,6 +178,11 @@ class Archipelago(ModMenu.SDKMod):
                 unrealsdk.Log(f"Pass: {Passcode}")
                 unrealsdk.Log(f"Server: {_saved_server.CurrentValue}")
                 unrealsdk.Log(f"Port: {_saved_port.CurrentValue}")
+                context = servercontext(
+                    password=Passcode, auth=_saved_player_name.CurrentValue, tags={"AP", "TextOnly"}, game="", items_handling=0b111,
+                    want_slot_data=False, address=f"ws://{_saved_server.CurrentValue}:{_saved_port.CurrentValue}"
+                )
+                _authorization.InitiateLogin(context)
                 self.LoggedIn()
             box_server.OnSubmit = OnSubmit
             box_server.Show()
