@@ -13,7 +13,7 @@ from typing import Any, Dict, List, Sequence, Set, Optional, Type
 
 if __name__ == "__main__":
     import importlib
-    for submodule in ("_authorization", "_pubsub", "_requests", "_CommonClient"):
+    for submodule in ("_authorization", "_utilities"):
         submodule = "Mods.Archipelago." + submodule
         if submodule in sys.modules:
             importlib.reload(sys.modules[submodule])
@@ -23,7 +23,7 @@ if __name__ == "__main__":
     except NotImplementedError:
         __file__ = os.path.abspath(sys.exc_info()[-1].tb_frame.f_code.co_filename)
 
-from Mods.Archipelago import _authorization, _pubsub, _requests as Requests, _utilities
+from Mods.Archipelago import _authorization, _utilities
 from Mods.UserFeedback import TextInputBox
 
 with _utilities.ImportContext:
@@ -37,26 +37,17 @@ __all__: List[str] = [
     "Requests",
 ]
 
-_saved_server: ModMenu.Options.Base = ModMenu.Options.Hidden(Caption="AP Server", StartingValue="archipelago.gg")
+_saved_server_port: ModMenu.Options.Base = ModMenu.Options.Hidden(Caption="AP Server & Port", StartingValue="localhost:38281")
 """A ModMenu Option to save the last connected archipelago server."""
-_saved_port: ModMenu.Options.Base = ModMenu.Options.Hidden(Caption="AP Port", StartingValue="{PortNum}")
-"""A ModMenu Option to save the last connected archipelago port."""
-_saved_player_name: ModMenu.Options.Base = ModMenu.Options.Hidden(Caption="AP Name", StartingValue="{PlayerName}")
+_saved_player_name: ModMenu.Options.Base = ModMenu.Options.Hidden(Caption="AP Name", StartingValue="Axxroy")
 """A ModMenu Option to save the last connected archipelago name."""
 Passcode = ""
 
-class servercontext():
-    password = ""
-    auth = ""
-    tags = ""
-    items_handling = ""
-    game = ""
-    want_slot_data = ""
-
-    def __init__(self, **kwarg):
-        for k, v in kwarg.items():
-            setattr(self, k, v)
-
+def _DisplayGameMessage(message: str, subtitle: str, duration: float = 5) -> None:
+    """Display a small UI message (in the same place as Steam connection messages, for example)."""
+    unrealsdk.GetEngine().GamePlayers[0].Actor.DisplayGameMessage(
+        MessageType = 5, Duration = duration, Message = message, Subtitle = subtitle
+    )
 
 class Archipelago(ModMenu.SDKMod):
     Name: str = "Archipelago Connector"
@@ -70,9 +61,10 @@ class Archipelago(ModMenu.SDKMod):
     Status: str = "<font color=\"#ff0000\">Not Connected</font>"
     SettingsInputs: Dict[str, str] = { "Enter": "Connect" }
 
-    Options: Sequence[ModMenu.Options.Base] = ( _saved_server, _saved_port, _saved_player_name )
+    Options: Sequence[ModMenu.Options.Base] = ( _saved_server_port, _saved_player_name )
 
     Passcode: str
+    Server = None
 
     _mod_menu_item: Optional[unrealsdk.UObject] = None
     """Our last known GFX object in the marketplace (mod menu)."""
@@ -168,22 +160,13 @@ class Archipelago(ModMenu.SDKMod):
 
         if action == "Connect":
             
-            box_server = TextInputBox("Archipelago Connection String", f"{_saved_player_name.CurrentValue}:{Passcode}@{_saved_server.CurrentValue}:{_saved_port.CurrentValue}", True)
+            box_server = TextInputBox("Archipelago Connection String", f"{_saved_player_name.CurrentValue}:{Passcode}@{_saved_server_port.CurrentValue}", True)
             def OnSubmit(msg):
                 unrealsdk.Log(msg)
-                name_code, server_port = msg.split("@")
+                name_code, _saved_server_port.CurrentValue = msg.split("@")
                 _saved_player_name.CurrentValue, Passcode = name_code.split(":")
-                _saved_server.CurrentValue, _saved_port.CurrentValue = server_port.split(":")
-                unrealsdk.Log(f"Player: {_saved_player_name.CurrentValue}")
-                unrealsdk.Log(f"Pass: {Passcode}")
-                unrealsdk.Log(f"Server: {_saved_server.CurrentValue}")
-                unrealsdk.Log(f"Port: {_saved_port.CurrentValue}")
-                context = servercontext(
-                    password=Passcode, auth=_saved_player_name.CurrentValue, tags={"AP", "TextOnly"}, game="", items_handling=0b111,
-                    want_slot_data=False, address=f"ws://{_saved_server.CurrentValue}:{_saved_port.CurrentValue}"
-                )
-                _authorization.InitiateLogin(context)
-                self.LoggedIn()
+                self.Server = _authorization.ServerConnection(self, msg)
+                self.Server.InitiateLogin()
             box_server.OnSubmit = OnSubmit
             box_server.Show()
 
