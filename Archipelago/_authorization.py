@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import unrealsdk # type: ignore
 
 import sys
@@ -6,6 +8,11 @@ import urllib
 import webbrowser
 import uuid
 import json
+import threading
+import random
+
+from collections import deque
+from select import select
 
 from typing import Callable, Optional, Sequence, Tuple
 
@@ -19,53 +26,9 @@ with _utilities.ImportContext:
 
 log = _utilities.log.getChild("Authorization")
 
+MessageCallback: Callable[[str, Dict[str, Any]], None]
 
-ClientID: str = "inuzmy8lmym3yrex7dgpeupj21ogfg"
-
-_PORT: int = 26969
-_BEGIN_PATH: str = "/"
-_LOGIN_PATH: str = "/login"
-_DONE_PATH: str = "/done"
-
-_TWITCH_URL: str = "https://id.twitch.tv/oauth2/authorize?" + urllib.parse.urlencode({
-    "client_id":     ClientID,
-    "redirect_uri":  f"http://localhost:{_PORT}{_LOGIN_PATH}",
-    "response_type": "token",
-    "force_verify":  "true",
-}) + "&scope="
-
-
-_DIALOG_KEYS: Tuple[str, ...] = (
-    "Enter", "Escape", "LeftMouseButton", "XboxTypeS_A", "XboxTypeS_B", "XboxTypeS_Start"
-)
-
-
-ValidationCallback: Callable[[], None] = lambda: None
-"""A callback to be invoked each time the user's authentication changes."""
-
-
-Token: Optional[str] = None
-"""The current OAuth token providing the user's current authentication."""
-Scopes: Sequence[str] = []
-"""The scopes for which API access is permitted via the user's current authentication."""
-UserName: Optional[str] = None
-"""The username associated with the user's currently authenticated account."""
-UserID: Optional[str] = None
-"""The user ID associated with the user's currently authenticated account."""
-
-
-Expiration: float = 0.0
-"""The time at which the user's authentication will expire."""
-NextValidation: float = 0.0
-"""The time at which we should next valicate the current OAuth token."""
-ValidationStatus: int = 0
-"""The HTTP response code we last received in response to a validation attempt."""
-
-
-_requested_scopes: Sequence[str]
-_http_listener: socket.socket = None
-_login_dialog: unrealsdk.UObject = None
-
+_websocket_thread: Optional[threading.Thread] = None
 
 class ServerConnection():
     version = _utilities.version_tuple
@@ -129,7 +92,6 @@ class ServerConnection():
             self.server.connect(f"wss://{self.server_port}")
         except:
             self.server.connect(f"ws://{self.server_port}")
-        unrealsdk.RunHook("WillowGame.WillowGameViewportClient.Tick", "log_incoming", lambda a,b,c: self.log_incoming(a,b,c))
 
     def log_incoming(self, caller: unrealsdk.UObject, function: unrealsdk.UFunction, params: unrealsdk.FStruct) -> bool:
         try:

@@ -108,3 +108,20 @@ def tuplize_version(version: str):
 __version__ = "0.4.3"
 version_tuple = tuplize_version(__version__)
 
+
+MainThreadQueue: Deque[Callable[[], None]] = deque()
+"""
+A queue of callables which are automatically dequeued and invoked on the main thread as they are
+appended.
+"""
+
+def _tick(caller: unrealsdk.UObject, function: unrealsdk.UFunction, params: unrealsdk.FStruct) -> bool:
+    """
+    Invoked repeatedly on the main thread. Each invocation, we dequeue and invoke each callback that
+    has been enqueued for us to invoke on the main thread.
+    """
+    while len(MainThreadQueue) != 0:
+        MainThreadQueue.popleft()()
+    return True
+
+unrealsdk.RunHook("WillowGame.WillowGameViewportClient.Tick", "Archipelago", _tick)

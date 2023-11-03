@@ -1,5 +1,5 @@
 import unrealsdk # type: ignore
-from Mods import ModMenu
+from Mods import ModMenu #, PickupMessages as _messenger
 
 import functools
 import os
@@ -13,7 +13,7 @@ from typing import Any, Dict, List, Sequence, Set, Optional, Type
 
 if __name__ == "__main__":
     import importlib
-    for submodule in ("_authorization", "_utilities"):
+    for submodule in ("_utilities", "_pubsub"):
         submodule = "Mods.Archipelago." + submodule
         if submodule in sys.modules:
             importlib.reload(sys.modules[submodule])
@@ -23,19 +23,13 @@ if __name__ == "__main__":
     except NotImplementedError:
         __file__ = os.path.abspath(sys.exc_info()[-1].tb_frame.f_code.co_filename)
 
-from Mods.Archipelago import _authorization, _utilities
+from Mods.Archipelago import _utilities, _pubsub
 from Mods.UserFeedback import TextInputBox
 
 with _utilities.ImportContext:
     import requests
     import websocket
 
-
-__all__: List[str] = [
-    "RegisterMod", "UnregisterMod", "RegisterWhileEnabled",
-    "Token", "Scopes", "UserName", "UserID",
-    "Requests",
-]
 
 _saved_server_port: ModMenu.Options.Base = ModMenu.Options.Hidden(Caption="AP Server & Port", StartingValue="localhost:38281")
 """A ModMenu Option to save the last connected archipelago server."""
@@ -49,6 +43,13 @@ def _DisplayGameMessage(message: str, subtitle: str, duration: float = 5) -> Non
         MessageType = 5, Duration = duration, Message = message, Subtitle = subtitle
     )
 
+def send_chat():
+    unrealsdk.Log("Key Pressed")
+    #chat_box = TextInputBox("Message", "", True)
+    #chat_box.OnSubmit=next(iter(_pubsub._core_websocket.values())).send_chat(msg)
+    #chat_box.Show()
+    
+
 class Archipelago(ModMenu.SDKMod):
     Name: str = "Archipelago Connector"
     Author: str = "Axxroy"
@@ -57,6 +58,10 @@ class Archipelago(ModMenu.SDKMod):
     )
     Version: str = "0.0"
     Types: ModMenu.ModTypes = ModMenu.ModTypes.Gameplay
+    
+    Keybinds = [
+        ModMenu.Keybind("Chat Window", "F3", OnPress=lambda: unrealsdk.Log("Key Pressed")),
+    ]
 
     Status: str = "<font color=\"#ff0000\">Not Connected</font>"
     SettingsInputs: Dict[str, str] = { "Enter": "Connect" }
@@ -68,7 +73,6 @@ class Archipelago(ModMenu.SDKMod):
 
     _mod_menu_item: Optional[unrealsdk.UObject] = None
     """Our last known GFX object in the marketplace (mod menu)."""
-    
     
     def _update_mod_menu(self) -> None:
         """Update our details for our mod menu entry, and force the mod menu to refresh."""
@@ -153,6 +157,27 @@ class Archipelago(ModMenu.SDKMod):
         self.SettingsInputs = { "Enter": "Reconnect", "Delete": "Disconnect" }
         self._update_mod_menu()
 
+    def parse_inputs(self, address, message):
+        for content in message:
+            messageType = content.get("cmd", "").upper()
+            unrealsdk.Log(content)
+            if messageType == "":
+                unrealsdk.Log("Received empty message")
+            elif messageType == "ROOMINFO":
+                unrealsdk.Log("Received room info")
+                self.Server.send_connect()
+            elif messageType == "RECONNECT":
+                unrealsdk.Log("Received request to reconnect")
+                self.Server.reconnect()
+            elif messageType == "CONNECTED":
+                unrealsdk.Log("CONNECTED")
+                self.LoggedIn()
+            elif messageType == "PRINTJSON":
+                for text in content['data']:
+                    _DisplayGameMessage(text['text'], "")
+            #else:
+            #    unrealsdk.Log(content)
+
     def SettingsInputPressed(self, action: str) -> None:
         unrealsdk.Log(action)
         #pc = unrealsdk.GetEngine().GamePlayers[0].Actor
@@ -165,12 +190,13 @@ class Archipelago(ModMenu.SDKMod):
                 unrealsdk.Log(msg)
                 name_code, _saved_server_port.CurrentValue = msg.split("@")
                 _saved_player_name.CurrentValue, Passcode = name_code.split(":")
-                self.Server = _authorization.ServerConnection(self, msg)
-                self.Server.InitiateLogin()
+                _pubsub.OpenTopic(msg)
+                self.Server = _pubsub._topic_websockets[msg]
             box_server.OnSubmit = OnSubmit
             box_server.Show()
 
         elif action == "Disconnect":
+            _pubsub.CloseAll()
             self.LoggedOut()
 
         """
@@ -183,7 +209,8 @@ class Archipelago(ModMenu.SDKMod):
         """
 
     def __init__(self):
-        ModMenu.SettingsManager.LoadModSettings(self)
+        _pubsub.MessageCallback = self.parse_inputs
+        unrealsdk.Log(self.Keybinds)
 
 
 _mod_instance = Archipelago()
