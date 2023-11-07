@@ -47,6 +47,9 @@ def send_chat():
     chat_box = TextInputBox("Message", "", True)
     chat_box.OnSubmit=next(iter(_pubsub._topic_websockets.values())).send_chat
     chat_box.Show()
+
+def send_check():
+    next(iter(_pubsub._topic_websockets.values())).send_check()
     
 
 class Archipelago(ModMenu.SDKMod):
@@ -60,6 +63,7 @@ class Archipelago(ModMenu.SDKMod):
     
     Keybinds = [
         ModMenu.Keybind("Chat Window", "F3", OnPress=send_chat),
+        ModMenu.Keybind("Send Check", "F4", OnPress=send_check)
     ]
 
     Status: str = "<font color=\"#ff0000\">Not Connected</font>"
@@ -136,11 +140,18 @@ class Archipelago(ModMenu.SDKMod):
             elif messageType == "ROOMINFO":
                 unrealsdk.Log("Received room info")
                 self.Server.send_connect()
+            elif messageType == "DATAPACKAGE":
+                self.Server.data_package = content['data']
+                #self.items = {v: k for k, v in content['data']['games']['Borderlands 2']['item_name_to_id'].items()}
+                unrealsdk.Log("Received data package")
             elif messageType == "RECONNECT":
                 unrealsdk.Log("Received request to reconnect")
                 self.Server.reconnect()
             elif messageType == "CONNECTED":
                 unrealsdk.Log("CONNECTED")
+            elif messageType == "RECEIVEDITEMS":
+                for i in content['items']:
+                    unrealsdk.Log(f"Received item {i}")
             elif messageType == "PRINTJSON":
                 for text in content['data']:
                     _DisplayGameMessage(text['text'], "")

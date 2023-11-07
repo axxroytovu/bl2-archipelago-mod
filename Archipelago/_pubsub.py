@@ -127,8 +127,8 @@ class _topic_websocket(websocket.WebSocket):
     """
 
     version = _utilities.version_tuple
-    tags = ["AP", "TextOnly"]
-    game = ""
+    tags = ["AP"]
+    game = "Borderlands 2"
     items_handling = 0b111
     slot_data = False
     uuid = uuid.getnode()
@@ -136,6 +136,7 @@ class _topic_websocket(websocket.WebSocket):
     server_port = ""
     player_name = ""
     passcode = ""
+    clicks=1
     """
     The topic this websocket is responsible for, as originally requested, without having had token
     replacement performed.
@@ -208,7 +209,7 @@ class _topic_websocket(websocket.WebSocket):
             'cmd': 'Connect', 'password': self.passcode, 'name': self.player_name, 'version': self.version,
             'tags': self.tags, 'items_handling': self.items_handling, 'uuid': self.uuid, 'game': self.game,
             'slot_data': self.slot_data
-        }]
+        }, {'cmd': 'GetDataPackage', 'games': ['Borderlands 2']}]
         self.send(json.dumps(payload))
         unrealsdk.Log("Sent connection")
         self.state = _topic_websocket.states.connected
@@ -216,6 +217,13 @@ class _topic_websocket(websocket.WebSocket):
     def send_chat(self, msg) -> None:
         payload = [{'cmd': 'Say', 'text': msg}]
         self.send(json.dumps(payload))
+
+    def send_check(self):
+        check = f"Click {self.clicks}"
+        id = self.data_package['games']["Borderlands 2"]['location_name_to_id'][check]
+        payload = [{'cmd': 'LocationChecks', 'locations': [id]}]
+        self.send(json.dumps(payload))
+        self.clicks += 1
 
 
     def receive_message(self) -> None:
