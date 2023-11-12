@@ -7,9 +7,10 @@ import sys
 import time
 import json
 import urllib
+import datetime
 
 from collections.abc import Mapping
-from typing import Any, Dict, List, Sequence, Set, Optional, Type
+from typing import Any, Dict, List, Sequence, Set, Optional, Type, NamedTuple, Callable
 
 if __name__ == "__main__":
     import importlib
@@ -50,7 +51,52 @@ def send_chat():
 
 def send_check():
     next(iter(_pubsub._topic_websockets.values())).send_check()
-    
+   
+def _claim(reward: Dict, pc: unrealsdk.UObject) -> None:
+    mission_def = unrealsdk.FindObject("MissionDefinition", "GD_Episode01.M_Ep1_Champion")
+    backup_game_stage = mission_def.GameStage
+    backup_title = mission_def.MissionName
+    backup_credits = mission_def.Reward.CreditRewardMultiplier.BaseValueScaleConstant
+    backup_reward_items = [r for r in mission_def.Reward.RewardItems]
+    backup_reward_item_pools = [p for p in mission_def.Reward.RewardItemPools]
+
+    mission_def.GameStage = reward["level"]
+    pc.RCon(f"set GD_Episode01.M_Ep1_Champion MissionName {reward['description']}")
+    mission_def.Reward.RewardItems = []
+    reward_pool = unrealsdk.FindObject("Object", reward["lootpool"])
+    mission_def.Reward.RewardItemPools = [reward_pool, reward_pool]
+    mission_def.Reward.CreditRewardMultiplier.BaseValueScaleConstant = 10
+
+    def magic():
+        pc.ServerGrantMissionRewards(mission_def, False)
+        pc.ShowStatusMenu()
+
+        def reset_mission_def() -> None:
+            mission_def.GameStage = backup_game_stage
+            pc.RCon(f"set GD_Episode01.M_Ep1_Champion MissionName {backup_title}")
+            mission_def.Reward.RewardItems = backup_reward_items
+            mission_def.Reward.RewardItemPools = backup_reward_item_pools
+            mission_def.Reward.CreditRewardMultiplier.BaseValueScaleConstant = backup_credits
+
+        call_in(5, reset_mission_def)
+
+    call_in(0.01, magic)
+
+def call_in(time: float, call: Callable[[], Any]) -> None:
+    """Call the given callable after the given time has passed."""
+    timer = datetime.datetime.now()
+    future = timer + datetime.timedelta(seconds=time)
+
+    # Create a wrapper to call the routine that is suitable to be passed to RunHook.
+    def tick(caller: unrealsdk.UObject, function: unrealsdk.UFunction, params: unrealsdk.FStruct) -> bool:
+        # Invoke the routine. If it returns False, unregister its tick hook.
+        if datetime.datetime.now() >= future:
+            call()
+            unrealsdk.RemoveHook("WillowGame.WillowGameViewportClient.Tick", "RewardCallIn" + str(call))
+        return True
+
+    # Hook the wrapper.
+    unrealsdk.RegisterHook("WillowGame.WillowGameViewportClient.Tick", "RewardCallIn" + str(call), tick)
 
 class Archipelago(ModMenu.SDKMod):
     Name: str = "Archipelago Connector"
@@ -150,8 +196,14 @@ class Archipelago(ModMenu.SDKMod):
             elif messageType == "CONNECTED":
                 unrealsdk.Log("CONNECTED")
             elif messageType == "RECEIVEDITEMS":
+                pc = unrealsdk.GetEngine().GamePlayers[0].Actor
+                Reward = dict(
+                    level=20,
+                    description="test",
+                    lootpool="GD_Itempools.EnemyDropPools.Pool_GunsAndGear_04_Rare"
+                )
                 for i in content['items']:
-                    unrealsdk.Log(f"Received item {i}")
+                    _claim(Reward, pc)
             elif messageType == "PRINTJSON":
                 for text in content['data']:
                     _DisplayGameMessage(text['text'], "")
